@@ -229,16 +229,24 @@ export function ScanPage(): JSX.Element {
               {warnings.length > 0 && (
                 <details className="mt-3 rounded-xl border border-warning/40 bg-warning/5 px-4 py-2 text-xs">
                   <summary className="cursor-pointer font-semibold text-warning-600">
-                    ⚠ {warnings.length} ملف لم تُقرأ أو لم تُستثنى من المقارنة — اضغط للعرض
+                    ⚠ {warnings.length} ملاحظة أثناء الفحص — اضغط للعرض
                   </summary>
-                  <ul dir="ltr" className="mt-2 max-h-48 space-y-1 overflow-y-auto font-mono text-[10px] text-muted">
+                  <ul className="mt-2 max-h-56 space-y-1.5 overflow-y-auto text-[11px] text-muted">
                     {warnings.slice(0, 200).map((w, i) => (
-                      <li key={`${w.path}-${i}`} className="truncate" title={w.message}>
-                        {w.path}
+                      <li key={`${w.path}-${i}`} className="border-b border-edge/50 pb-1 last:border-0">
+                        <span
+                          dir="ltr"
+                          className="block truncate font-mono text-[10px] text-ink"
+                          title={w.path}
+                        >
+                          {w.path}
+                        </span>
+                        {/* السبب مكتوب صراحةً — path وحده لا يشرح لماذا استُبعد الملف */}
+                        <span>{w.message}</span>
                       </li>
                     ))}
                     {warnings.length > 200 && (
-                      <li className="font-sans text-muted">… و{formatNumber(warnings.length - 200)} ملف آخر</li>
+                      <li>… و{formatNumber(warnings.length - 200)} ملاحظة أخرى</li>
                     )}
                   </ul>
                 </details>

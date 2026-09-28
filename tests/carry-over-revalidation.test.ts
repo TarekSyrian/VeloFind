@@ -4,6 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { ScanScheduler, nextIdAfter } from '@engine/scanner/scan-scheduler'
 import { refreshCarriedFiles } from '@engine/scanner/file-scanner'
+import { DirectoryWalker } from '@engine/scanner/directory-walker'
 import { MemoryIndex } from '@engine/index/memory-index'
 import { groupsFromPartialHashMap, groupsFromFullHashMap, partialKey } from '@engine/duplicates/duplicate-groups'
 import { computePartialHash } from '@engine/duplicates/partial-hasher'
@@ -264,6 +265,89 @@ describe('بقاء المجموعات بعد إعادة تشغيل التطبي�
 
   it('مفتاح البصمة الجزئية موحّد بين الكاشف والفهرس', () => {
     expect(partialKey(1234, 'abc')).toBe('1234|abc')
+  })
+})
+
+describe('إعلان مجلدات النظام المستثناة بدل استثنائها بصمت', () => {
+  /** لقط تجوّل كاملة عبر DirectoryWalker مع مسارات نظام صريحة */
+  async function walk(
+    root: string,
+    systemPaths: string[]
+  ): Promise<{ files: string[]; warnings: ScanWarning[] }> {
+    const files: string[] = []
+    const warnings: ScanWarning[] = []
+    const walker = new DirectoryWalker(
+      {
+        locations: [root],
+        excluded: [],
+        excludedFolderNames: [],
+        includeHidden: false,
+        excludeSystemFolders: true,
+        systemPaths
+      },
+      new CancellationToken(),
+      new PauseGate()
+    )
+    await walker.walk({
+      onEntry: (e) => files.push(e.path),
+      onProgress: () => undefined,
+      onWarning: (w) => warnings.push(w)
+    })
+    return { files, warnings }
+  }
+
+  it('مجلد نظام حقيقي داخل الشجرة يُستثنى مع تحذير يشرح السبب', async () => {
+    const root = tmp('vf-syspath-')
+    const sysDir = path.join(root, 'Windows')
+    const dataDir = path.join(root, 'Data')
+    fs.mkdirSync(sysDir)
+    fs.mkdirSync(dataDir)
+    const pIn = write(sysDir, 'inside.iso', Buffer.alloc(64, 1))
+    const pOut = write(dataDir, 'outside.iso', Buffer.alloc(64, 1))
+
+    const { files, warnings } = await walk(root, [sysDir])
+
+    expect(files).toContain(pOut)
+    expect(files).not.toContain(pIn)
+
+    // التحذير إلزامي: بدونه لا يعرف المستخدم لماذا اختفى ملفّه من النتائج
+    const w = warnings.find((x) => x.path === sysDir)
+    expect(w).toBeTruthy()
+    expect(w?.kind).toBe('excluded_system')
+    expect(w?.message).toContain('مجلد النظام')
+    cleanup(root)
+  })
+
+  it('لا تحذير عندما لا يوجد مجلد نظام مطابق', async () => {
+    const root = tmp('vf-syspath-none-')
+    write(root, 'a.iso', Buffer.alloc(64, 1))
+    const { warnings } = await walk(root, [path.join(root, 'Program Files')])
+    expect(warnings.filter((w) => w.kind === 'excluded_system')).toHaveLength(0)
+    cleanup(root)
+  })
+
+  it('اختيار المجلد النظامي صراحةً كموقع يفحصه كاملًا بلا استثناء', async () => {
+    const root = tmp('vf-syspath-root-')
+    const sysDir = path.join(root, 'Windows')
+    fs.mkdirSync(sysDir)
+    const p = write(sysDir, 'picked.iso', Buffer.alloc(64, 1))
+
+    const files: string[] = []
+    const walker = new DirectoryWalker(
+      {
+        locations: [sysDir],
+        excluded: [],
+        excludedFolderNames: [],
+        includeHidden: false,
+        excludeSystemFolders: true,
+        systemPaths: [sysDir]
+      },
+      new CancellationToken(),
+      new PauseGate()
+    )
+    await walker.walk({ onEntry: (e) => files.push(e.path), onProgress: () => undefined, onWarning: () => undefined })
+    expect(files).toContain(p)
+    cleanup(root)
   })
 })
 

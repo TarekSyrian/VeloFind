@@ -113,7 +113,7 @@ export interface ScanProgress {
 /** تحذير أثناء الفحص (ملف غير قابل للقراءة، صلاحيات، تغير مفاجئ...) */
 export interface ScanWarning {
   path: string
-  kind: 'unreadable' | 'access_denied' | 'changed' | 'other'
+  kind: 'unreadable' | 'access_denied' | 'changed' | 'excluded_system' | 'other'
   message: string
 }
 

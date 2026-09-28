@@ -14,6 +14,7 @@
     "test": "vitest run",
     "predist": "node scripts/fix-sqlite-win32.js",
     "verify:package": "node scripts/verify-package.js",
+    "diagnose:duplicates": "node scripts/diagnose-duplicates.mjs",
     "dist": "electron-vite build && electron-builder --win --x64 --publish never",
     "postinstall": "electron-builder install-app-deps || echo \"[velofind] install-app-deps skipped (سيُعاد البناء تلقائيًا أثناء التغليف)\""
   },

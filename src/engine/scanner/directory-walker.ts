@@ -129,6 +129,15 @@ export class DirectoryWalker {
           this.options.excludeSystemFolders
         )
       ) {
+        // الاستثناء الصامت كان يجعل المستخدم يسأل «لماذا ملفّي غير موجود؟»
+        // ولا يتغيّر فحصه إلا بإعادة تشغيل التطبيق. صار الاستثناء معلنًا.
+        hooks.onWarning({
+          path: dir,
+          kind: 'excluded_system',
+          message:
+            `تم استثناء مجلد النظام «${dir}» من الفحص. ` +
+            'إن أردت فحصه فاختره صراحةً كموقع للفحص (سيتجاوز الاستثناء).'
+        })
         return
       }
       if (nameLooksHidden(path.basename(dir)) && !this.options.includeHidden) return
