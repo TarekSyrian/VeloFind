@@ -1,0 +1,104 @@
+{
+  "name": "velofind",
+  "productName": "VeloFind",
+  "version": "0.3.1",
+  "description": "VeloFind — Fast duplicate file finder for Windows | ابحث عن الملفات المكررة واحذفها بأمان",
+  "author": "VeloFind Team",
+  "license": "MIT",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "vitest run",
+    "predist": "node scripts/fix-sqlite-win32.js",
+    "verify:package": "node scripts/verify-package.js",
+    "dist": "electron-vite build && electron-builder --win --x64 --publish never",
+    "postinstall": "electron-builder install-app-deps || echo \"[velofind] install-app-deps skipped (سيُعاد البناء تلقائيًا أثناء التغليف)\""
+  },
+  "build": {
+    "appId": "com.velofind.app",
+    "productName": "VeloFind",
+    "copyright": "Copyright © 2026 VeloFind Team",
+    "asar": true,
+    "compression": "maximum",
+    "removePackageScripts": true,
+    "directories": {
+      "output": "release",
+      "buildResources": "resources"
+    },
+    "files": [
+      "out/**",
+      "package.json",
+      "!**/*.map",
+      "!**/node_modules/*/{test,tests,__tests__,example,examples,doc,docs,benchmark,benchmarks}/**",
+      "!**/node_modules/*/*.{md,markdown,ts,flow,map,yml,yaml}"
+    ],
+    "asarUnpack": [
+      "**/node_modules/better-sqlite3/**",
+      "**/node_modules/koffi/**"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/icon.png",
+        "to": "icon.png"
+      },
+      {
+        "from": "resources/tray.png",
+        "to": "tray.png"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "resources/icon.ico",
+      "artifactName": "VeloFind-Setup-${version}-${arch}.${ext}",
+      "signExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "VeloFind",
+      "artifactName": "VeloFind-Setup-${version}.${ext}",
+      "differentialPackage": false,
+      "packElevateHelper": false,
+      "unicode": true
+    },
+    "afterPack": "./scripts/verify-package.js",
+    "publish": null
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.5.0",
+    "koffi": "^2.9.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.7.1",
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^22.9.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "autoprefixer": "^10.4.20",
+    "electron": "^33.2.0",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^2.3.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.5"
+  }
+}

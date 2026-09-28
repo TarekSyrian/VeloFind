@@ -1,0 +1,161 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* متغيرات الثيم الفاتح/الداكن — ألوان الهوية من PRD §30 */
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --panel-2: #fbfbfd;
+  --edge: #e4e7ec;
+  --ink: #1b1e24;
+  --muted: #5a6170;
+}
+
+.dark {
+  --bg: #17191d;
+  --panel: #1e2127;
+  --panel-2: #22262d;
+  --edge: #2a2e36;
+  --ink: #e8eaee;
+  --muted: #9aa1ad;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, 'Noto Sans Arabic', system-ui, sans-serif;
+  overflow: hidden;
+  user-select: none;
+}
+
+::selection {
+  background: rgba(91, 95, 239, 0.35);
+}
+
+/* أشرطة تمرير ناعمة */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--edge);
+  border-radius: 8px;
+  border: 2px solid var(--bg);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-edge bg-panel shadow-card transition-all duration-200;
+  }
+  .card-hover {
+    @apply hover:shadow-card-hover hover:border-primary/30;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold
+      transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-primary/50
+      disabled:cursor-not-allowed disabled:opacity-45 select-none;
+  }
+  .btn-primary {
+    @apply btn bg-primary text-white shadow-sm hover:bg-primary-600 active:scale-[0.98];
+  }
+  .btn-accent {
+    @apply btn bg-accent text-white shadow-sm hover:bg-accent-600 active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply btn border border-edge bg-panel text-ink hover:bg-panel-2 hover:border-muted;
+  }
+  .btn-danger-outline {
+    @apply btn border border-danger/50 text-danger hover:bg-danger/10;
+  }
+  .btn-danger {
+    @apply btn bg-danger text-white hover:bg-danger-600 active:scale-[0.98];
+  }
+  .btn-sm {
+    @apply px-2.5 py-1.5 text-xs rounded-lg;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-edge bg-panel px-3 py-2 text-sm text-ink
+      placeholder:text-muted outline-none transition focus:border-primary/60 focus:ring-2 focus:ring-primary/25;
+  }
+
+  .select {
+    @apply input cursor-pointer appearance-none bg-panel pe-8;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-edge bg-panel-2 px-3 py-1 text-xs
+      font-medium text-muted cursor-pointer transition select-none hover:border-primary/40 hover:text-ink;
+  }
+  .chip-active {
+    @apply border-primary/60 bg-primary/10 text-primary;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-semibold;
+  }
+
+  .kbd {
+    @apply rounded-md border border-edge bg-panel-2 px-1.5 py-0.5 font-mono text-[11px] text-muted;
+  }
+
+  .drag-region {
+    -webkit-app-region: drag;
+  }
+  .no-drag {
+    -webkit-app-region: no-drag;
+  }
+}
+
+/* مفتاح تبديل (Switch) */
+.switch {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  border-radius: 9999px;
+  background: var(--edge);
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  inset-inline-start: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+[dir='rtl'] .switch::after {
+  transform: translateX(0);
+}
+.switch[data-checked='true'] {
+  background: #5b5fef;
+}
+.switch[data-checked='true']::after {
+  transform: translateX(-18px);
+}
+.switch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* شريط تقدم متحرك */
+.progress-fill {
+  transition: width 0.3s ease;
+}

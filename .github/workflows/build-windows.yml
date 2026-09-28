@@ -1,0 +1,84 @@
+name: Build Windows — بناء VeloFind ونشر المثبّت
+
+# البناء الوحيد الذي ينتج ملفات. ينتج ملفًا واحدًا فقط:
+#   VeloFind-Setup-x.y.z.exe — مثبّت NSIS مضغوط بأقصى ضغط
+#
+# لا نسخة محمولة (portable) ولا AppImage ولا deb ولا أي حزمة لينكس.
+# آخر سطر في electron-builder يحذف كل ما عدا المثبّت احتياطًا، فلا يمكن
+# تسرّب مخرجات غير مقصودة مهما تغيّرت الإعدادات لاحقًا.
+#
+# التشغيل:
+#   • يدويًا: تبويب Actions ← Build Windows ← Run workflow
+#   • تلقائيًا: كل push على main/master
+#   • نشر Release: ارفع وسمًا باسم v0.3.2 مثلاً ← يُنشأ Release بالملف فقط
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    tags:
+      - "v*"
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+
+jobs:
+  build:
+    name: Build & package (windows-latest)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit & integration tests
+        run: npm test
+
+      - name: Build & package (electron-builder)
+        run: npm run dist
+        env:
+          # لا توجد شهادة توقيع مدفوعة في هذه المرحلة — تعطيل اكتشاف التوقيع
+          # (وإلا فشل البناء على أي جهاز يحمل شهادة في مستودع المفاتيح)
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # حارس الإخراج: لا يبقى في مجلد release إلا المثبّت
+      - name: Prune every artifact except the installer
+        shell: pwsh
+        run: |
+          $keep = Get-ChildItem release -Filter 'VeloFind-Setup-*.exe' -File
+          if (-not $keep) {
+            Write-Error 'لم يُنتَج أي مثبّت .exe — البناء فشل صامتًا'
+            exit 1
+          }
+          Get-ChildItem release -File | Where-Object { $_.Name -notin $keep.Name } | Remove-Item -Force
+          Get-ChildItem release | Select-Object Name, @{N='SizeMB';E={[math]::Round($_.Length/1MB,1)}}
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VeloFind-Installer-x64
+          if-no-files-found: error
+          retention-days: 30
+          path: release/VeloFind-Setup-*.exe
+
+      - name: Create GitHub Release (على الوسوم فقط)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref, '-beta') || contains(github.ref, '-rc') }}
+          files: |
+            release/VeloFind-Setup-*.exe
