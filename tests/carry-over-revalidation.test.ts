@@ -77,6 +77,18 @@ function tmp(prefix: string): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix))
 }
 
+/**
+ * حذف مجلد مؤقت مع إعادة محاولة.
+ *
+ * على ويندوز يفشل الحذف بـ EBUSY/EPERM/ENOTEMPTY إذا كان هناك أي مقبض
+ * ملف ما زال يُغلق، أو إذا كان برنامج مكافحة الفيروسات أو فهرس بحث ويندوز
+ * يمسح الملف في تلك اللحظة. خيارات maxRetries/retryDelay في fs.rmSync
+ * مصممة تحديدًا لهذه الأخطاء، والفشل كان يظهر على عدّاء Actions فقط.
+ */
+function cleanup(dir: string): void {
+  fs.rmSync(dir, { recursive: true, force: true, maxRetries: 20, retryDelay: 50 })
+}
+
 describe('إعادة التحقق من الملفات المحمولة — السبب الجذري لغياب المكررات العابرة للأقراص', () => {
   it('ملف تغيّر حجمه على القرص يُحدَّث ويُعاد تصنيفه (كان يبقى بحجمه القديم إلى الأبد)', async () => {
     const root = tmp('vf-carry-size-')
@@ -91,7 +103,7 @@ describe('إعادة التحقق من الملفات المحمولة — ال�
     expect(r.files[0].scanState).toBe('new')
     expect(r.files[0].fullHash).toBeUndefined()
     expect(r.files[0].partialHash).toBeUndefined()
-    fs.rmSync(root, { recursive: true, force: true })
+    cleanup(root)
   })
 
   it('ملف لم يتغير يُعاد ببصماته (unchanged) — مسار عدم إعادة القراءة يبقى سليمًا', async () => {
@@ -101,7 +113,7 @@ describe('إعادة التحقق من الملفات المحمولة — ال�
     const r = await refreshCarriedFiles([record], new CancellationToken(), new PauseGate())
     expect(r.files[0].scanState).toBe('unchanged')
     expect(r.files[0].fullHash).toBe('keep-me')
-    fs.rmSync(root, { recursive: true, force: true })
+    cleanup(root)
   })
 
   it('ملف محذوف يُعلَّم missing ويُستبعد من المجموعات', async () => {
@@ -111,7 +123,7 @@ describe('إعادة التحقق من الملفات المحمولة — ال�
     fs.unlinkSync(p)
     const r = await refreshCarriedFiles([record], new CancellationToken(), new PauseGate())
     expect(r.files[0].scanState).toBe('missing')
-    fs.rmSync(root, { recursive: true, force: true })
+    cleanup(root)
   })
 
   it('ملف على وحدة تخزين غير متاحة يُحمَّل كما هو (لا يُفقد مفهرسته)', async () => {
@@ -122,7 +134,7 @@ describe('إعادة التحقق من الملفات المحمولة — ال�
     const r = await refreshCarriedFiles([record], new CancellationToken(), new PauseGate())
     expect(r.files[0].scanState).toBe('unchanged')
     expect(r.files[0].fullHash).toBe('h')
-    fs.rmSync(root, { recursive: true, force: true })
+    cleanup(root)
   })
 
   it('ترتيب الملفات المحمولة ثابت بين الفحوصات (نتائج متوازية لا تتبدّل)', async () => {
@@ -134,7 +146,7 @@ describe('إعادة التحقق من الملفات المحمولة — ال�
     const b = await refreshCarriedFiles(records, new CancellationToken(), new PauseGate())
     expect(a.files.map((f) => f.id)).toEqual(records.map((r) => r.id))
     expect(a.files.map((f) => f.id)).toEqual(b.files.map((f) => f.id))
-    fs.rmSync(root, { recursive: true, force: true })
+    cleanup(root)
   })
 })
 
@@ -165,7 +177,7 @@ describe('سيناريو البلاغ: ISO كبير على قرصين مع فح�
     const group = scan2.groups.find((g) => g.files.some((f) => f.path === pL))
     expect(group, 'التوأم العابر للأقراص يجب أن يظهر كمجموعة').toBeTruthy()
     expect(group?.files.some((f) => f.path === pH)).toBe(true)
-    fs.rmSync(root, { recursive: true, force: true })
+    cleanup(root)
   })
 
   it('محتوى الملف تغيّر بنفس الحجم وبصمة كاملة قديمة → المجموعة تُبنى من البصمة الجديدة', async () => {
@@ -200,7 +212,7 @@ describe('سيناريو البلاغ: ISO كبير على قرصين مع فح�
     expect(group, 'النسختان L: و H: متطابقتان الآن ويجب أن تظهرا كمجموعة').toBeTruthy()
     expect(group?.files.some((f) => f.path === pH)).toBe(true)
     void pLtw
-    fs.rmSync(root, { recursive: true, force: true })
+    cleanup(root)
   })
 })
 
@@ -227,7 +239,7 @@ describe('بقاء المجموعات بعد إعادة تشغيل التطبي�
     expect(groups[0].fileCount).toBe(2)
     expect(groups[0].hashKind).toBe('partial')
     expect(groups[0].files.map((f) => f.path).sort()).toEqual([p1, p2].sort())
-    fs.rmSync(root, { recursive: true, force: true })
+    cleanup(root)
   })
 
   it('الملفات التي لها بصمة كاملة لا تُحتسب مرتين (جزئي + كامل)', async () => {
@@ -247,7 +259,7 @@ describe('بقاء المجموعات بعد إعادة تشغيل التطبي�
     const full = groupsFromFullHashMap(index.fullHashEntries())
     expect(full).toHaveLength(1)
     expect(full[0].files.map((f) => f.path).sort()).toEqual([p1, p2].sort())
-    fs.rmSync(root, { recursive: true, force: true })
+    cleanup(root)
   })
 
   it('مفتاح البصمة الجزئية موحّد بين الكاشف والفهرس', () => {
